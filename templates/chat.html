@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="static/logo.png" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aerolink Chat</title>
+    <style>
+
+        input[type="text"],
+                button,
+                select,
+                textarea {
+                    font-size: 16px; /* Prevent zoom on iOS */
+                }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #welcomeAndAddFriend {
+            margin-bottom: 20px;
+        }
+
+        #chatContainer {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #chatLog {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 45px; /* Adjust based on the height of #messageBox */
+            min-height: 0; /* Add this line */
+        }
+
+        #messageBox {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            background-color: #1d1d1d;
+            padding: 0px 0px 5px 0px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 10px;
+            background-color: #292929;
+            color: #fff;
+        }
+
+        input {
+            flex-grow: 1;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        #backButton {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 5px 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .conversationItem {
+            display: block;
+            margin: 5px 0;
+            padding: 10px;
+            background-color: #2d2d2d;
+            color: #fff;
+            text-align: left;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: calc(100% - 20px); /* Adjust padding */
+        }
+        
+        .conversationItem:hover {
+            background-color: #3a3a3a;
+        }
+
+        #loadMoreMessages {
+            background-color: #1d1d1d; /* Change button color */
+            color: #fff; /* Ensure text is visible */
+            padding: 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #messageBox input {
+            background-color: #1d1d1d; /* Change the background color of the input box */
+            color: #fff;
+        }
+
+        .no-friends-message {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #1d1d1d;
+            color: #bfbfbf;
+            border-radius: 5px;
+            text-align: center;
+            font-style: italic;
+            font-size: 16px;
+        }
+
+
+            
+    </style>
+</head>
+<body>
+    <div id="welcomeAndAddFriend">
+        <h2>Welcome, {{ current_user.username }}!</h2>
+        <form action="{{ url_for('add_friend') }}" method="post">
+            <input type="text" name="friend_name" placeholder="Friend's username">
+            <input type="submit" value="Add Friend">
+        </form>
+        <h3>Friends:</h3>
+        <div id="conversationsList">
+            {% if current_user.friends %}
+                {% for friend in current_user.friends %}
+                <div onclick="loadChat('{{ friend.username }}')" class="conversationItem">
+                    {{ friend.username }}
+                    <span class="notification-badge" id="badge_{{ friend.username }}" style="display: none;"></span>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p class="no-friends-message">No friends yet!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="chatContainer">
+        <button id="backButton" onclick="showFriendsList()">← Back</button>
+        <select id="recipient" style="display:none;">
+            {% for friend in current_user.friends %}
+            <option value="{{ friend.username }}">{{ friend.username }}</option>
+            {% endfor %}
+        </select>
+        <div id="chatSection" style="display: none;">
+            <div id="chatLog">
+                <button id="loadMoreMessages" onclick="loadMoreMessages()">View More</button>
+                <!-- Chat messages will be loaded here -->
+            </div>
+            <div id="messageBox">
+                <input type="text" id="message" placeholder="Send a message...">
+                <button id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
+    <script>
+        var socket = io.connect('https://aerolink.live/chat');
+        
+        socket.emit('join');
+
+        // Assume this is part of your existing script
+function sendMessage() {
+    var messageContent = document.getElementById("message").value.trim();
+    var recipient = document.getElementById("recipient").value;
+
+    if (messageContent !== '') {
+        socket.emit('private_message', {
+            to: recipient,
+            message: messageContent
+        });
+        console.log("Emitting private_message event");
+
+        appendMessage('{{ current_user.username }}', messageContent); // Updated part
+
+        document.getElementById("message").value = '';
+    } else {
+        console.log("Empty message. Not sending.");
+    }
+}
+
+function appendMessage(sender, messageContent) {
+    var chatMessagesContainer = document.getElementById("chatMessagesContainer"); // Ensure this container exists
+    if (!chatMessagesContainer) {
+        var chatLogElem = document.getElementById("chatLog");
+        chatMessagesContainer = document.createElement('div');
+        chatMessagesContainer.id = "chatMessagesContainer";
+        chatLogElem.appendChild(chatMessagesContainer);
+    }
+    chatMessagesContainer.innerHTML += sender + ': ' + messageContent + '<br>';
+    var chatLogElem = document.getElementById("chatLog");
+    chatLogElem.scrollTop = chatLogElem.scrollHeight;
+}
+
+
+        document.getElementById("message").addEventListener("keydown", function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+                e.preventDefault();
+            }
+        });
+
+        var missedMessages = {};
+
+        socket.on('new_private_message', function(data) {
+            console.log("Received message:", data.message);
+            
+            var selectedFriend = document.getElementById("recipient").value;
+            if (data.from === selectedFriend) {
+                var chatLogElem = document.getElementById("chatLog");
+                chatLogElem.innerText += data.from + ': ' + data.message + '\n';
+                chatLogElem.scrollTop = chatLogElem.scrollHeight;
+            } else {
+                missedMessages[data.from] = (missedMessages[data.from] || 0) + 1;
+                if (selectedFriend != data.from){
+                    updateNotificationBadge(data.from);
+                }
+            }
+        });
+
+        function updateNotificationBadge(username) {
+            var badgeElem = document.getElementById('badge_' + username);
+            console.log(badgeElem);
+            console.log(username);
+            if (missedMessages[username] > 0) {
+                badgeElem.innerText = missedMessages[username];
+                badgeElem.style.display = 'inline';
+            } else {
+                badgeElem.style.display = 'none';
+            }
+        }
+
+        function loadChat(username) {
+            messageOffset = 0;
+            // Clear the chat log before loading new messages
+            var chatLogElem = document.getElementById("chatLog");
+            chatLogElem.innerText = '';
+
+            // Set the recipient for the new chat
+            document.getElementById("recipient").value = username;
+
+            // Reset any missed messages count and update notification badge
+            missedMessages[username] = 0;
+            updateNotificationBadge(username);
+
+            // Fetch the chat history for the new chat
+            fetchChatHistory();
+
+            // Hide the welcome and conversations list, and show the chat section
+            document.getElementById("welcomeAndAddFriend").style.display = 'none';
+            document.getElementById("chatSection").style.display = 'flex';
+            document.getElementById("chatContainer").style.display = 'flex';
+            document.getElementById("chatContainer").classList.add('fullscreen');
+            document.getElementById("backButton").style.display = 'block';
+        }
+
+
+        function showFriendsList() {
+            document.getElementById("chatSection").style.display = 'none';
+            document.getElementById("chatContainer").classList.remove('fullscreen');
+            document.getElementById("backButton").style.display = 'none';
+            document.getElementById("welcomeAndAddFriend").style.display = 'block';
+        }
+        
+
+        var messageOffset = 0;
+        var messageLimit = 50;
+
+        function fetchChatHistory(limit = messageLimit, offset = messageOffset) {
+    var recipient = document.getElementById("recipient").value;
+    fetch(`/get_chat_history/${recipient}/${limit}/${offset}`)
+        .then(response => response.json())
+        .then(data => {
+            var chatLogElem = document.getElementById("chatLog");
+
+            // Reverse the order of the fetched messages
+            data.chatHistory.reverse();
+            var newMessagesHTML = data.chatHistory.map(message => 
+                `${message.sender}: ${message.content}<br>`).join('');
+
+            var loadMoreContainer = document.getElementById("loadMoreContainer");
+            if (!loadMoreContainer && data.chatHistory.length > 0) {
+                // Create container for 'Load More' button
+                loadMoreContainer = document.createElement('div');
+                loadMoreContainer.id = 'loadMoreContainer';
+                chatLogElem.insertBefore(loadMoreContainer, chatLogElem.firstChild);
+
+                var loadMoreButton = document.createElement('button');
+                loadMoreButton.id = 'loadMoreMessages';
+                loadMoreButton.innerText = 'View More';
+                loadMoreButton.onclick = loadMoreMessages;
+                loadMoreContainer.appendChild(loadMoreButton);
+
+                var lineBreak = document.createElement('br');
+                loadMoreContainer.appendChild(lineBreak);
+            }
+
+            var previousScrollHeight = chatLogElem.scrollHeight;
+
+            if (offset === 0) {
+                // Clear existing messages for the initial load
+                chatLogElem.innerHTML = '';
+                if (loadMoreContainer) {
+                    chatLogElem.appendChild(loadMoreContainer);
+                }
+                chatLogElem.insertAdjacentHTML('beforeend', newMessagesHTML);
+            } else {
+                // Prepend new messages before the 'Load More' container
+                var additionalMessages = document.createElement('div');
+                additionalMessages.innerHTML = newMessagesHTML;
+                chatLogElem.insertBefore(additionalMessages, loadMoreContainer.nextSibling);
+            }
+
+            // Adjust scrolling based on load
+            chatLogElem.scrollTop = chatLogElem.scrollHeight; // Ensure scroll to bottom
+
+            // Hide 'Load More' button if all messages are loaded
+            if (data.chatHistory.length < limit && loadMoreContainer) {
+                loadMoreContainer.style.display = 'none';
+            }
+
+        })
+        .catch(error => console.error('Error fetching chat history:', error));
+}
+
+
+        function loadMoreMessages() {
+            messageOffset += messageLimit;
+            fetchChatHistory(messageLimit, messageOffset);
+        }
+
+        document.getElementById("recipient").addEventListener("change", fetchChatHistory);
+
+        window.onload = showFriendsList;
+    </script>
+</body>
+</html>

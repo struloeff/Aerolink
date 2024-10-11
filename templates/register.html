@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="static/logo.png" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aerolink Register</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif;
+        }
+        body {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom, #000000, #000000);
+        }
+        .wrapper {
+            width: 380px;
+            padding: 40px 30px 50px 30px;
+            background: #fff;
+            border-radius: 5px;
+            text-align: center;
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .wrapper header {
+            margin: 0 0 10px 0;
+            font-size: 35px;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: black;
+        }
+        form .field {
+            width: 100%;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        form .field .input-area {
+            height: 50px;
+            width: 100%;
+            position: relative;
+        }
+        form input {
+            width: 100%;
+            height: 100%;
+            outline: none;
+            padding: 0 45px;
+            font-size: 18px;
+            background: none;
+            caret-color: #5372F0;
+            border-radius: 5px;
+            border: 1px solid #bfbfbf;
+            border-bottom-width: 2px;
+            transition: all 0.2s ease;
+        }
+        form input:focus {
+            border-color: #5372F0;
+        }
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: #bfbfbf;
+            pointer-events: none;
+            transition: color 0.2s ease; /* Ensures smooth color transition */
+        }
+        form input:focus ~ .input-icon,
+        form .field.valid .input-icon {
+            color: #5372F0; /* Icon color changes to blue when input is focused */
+        }
+        .header-logo {
+            height: 75px;
+            width: 75px;
+        }
+        input[type="submit"] {
+            height: 50px;
+            margin-top: 10px;
+            color: #fff;
+            padding: 0;
+            border: none;
+            background: #000;
+            cursor: pointer;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <header>
+            <img src="static/logo.png" alt="Aerolink Logo" class="header-logo">
+            <p>Let's get you started.</p>
+        </header>
+        <form action="{{ url_for('register') }}" method="post">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <div class="input-area">
+                    {{ form.username(class="input", placeholder="Username") }}
+                    <i class="input-icon fa fa-user"></i>
+                </div>
+            </div>
+            <div class="field">
+                <div class="input-area">
+                    {{ form.email(class="input", placeholder="Email") }}
+                    <i class="input-icon fa fa-envelope"></i>
+                </div>
+            </div>
+            <div class="field">
+                <div class="input-area">
+                    {{ form.password(class="input", placeholder="Password") }}
+                    <i class="input-icon fa fa-lock"></i>
+                </div>
+            </div>
+            <div class="field">
+                <div class="input-area">
+                    {{ form.confirm(class="input", placeholder="Confirm Password") }}
+                    <i class="input-icon fa fa-lock"></i>
+                </div>
+            </div>
+            <div>
+                {{ form.submit(class="submit-button") }}
+            </div>
+        </form>
+    </div>
+</body>
+</html>
